@@ -1,9 +1,11 @@
 /*global define*/
 
 define([
-    './LinearScale'
+    './LinearScale',
+    '../lib/eventHelpers'
 ], function (
-    LinearScale
+    LinearScale,
+    eventHelpers
 ) {
     'use strict';
 
@@ -29,24 +31,24 @@ define([
         this.tickUpdate = false;
 
         this.$scope.plotHistory = this.plotHistory = [];
-        this.$scope.$on('plot:clearHistory', this.clear.bind(this));
+        this.listenTo(this.$scope, 'plot:clearHistory', this.clear, this);
 
         // Bind handlers so they are properly removed.
-        [
-            'toggleInteractionMode',
-            'resetInteractionMode',
-            'onMouseDown',
-            'onMouseUp',
-            'trackMousePosition',
-            'untrackMousePosition',
-            'stopWatching',
-            'onPlotHighlightSet',
-            'onTickWidthChange',
-            'onXAxisChange',
-            'onYAxisChange'
-        ].forEach(function (handler) {
-            this[handler] = this[handler].bind(this);
-        }, this);
+        // [
+        //     'toggleInteractionMode',
+        //     'resetInteractionMode',
+        //     'onMouseDown',
+        //     'onMouseUp',
+        //     'trackMousePosition',
+        //     'untrackMousePosition',
+        //     'stopWatching',
+        //     'onPlotHighlightSet',
+        //     'onTickWidthChange',
+        //     'onXAxisChange',
+        //     'onYAxisChange'
+        // ].forEach(function (handler) {
+        //     this[handler] = this[handler].bind(this);
+        // }, this);
 
         this.initialize();
         window.control = this;
@@ -54,17 +56,19 @@ define([
 
     MCTPlotController.$inject = ['$scope', '$element', '$window'];
 
+    eventHelpers.extend(MCTPlotController.prototype)
+
     MCTPlotController.prototype.initialize = function () {
         this.$canvas = this.$element.find('canvas');
 
-        this.$canvas.on('mousemove', this.trackMousePosition);
-        this.$canvas.on('mouseleave', this.untrackMousePosition);
-        this.$canvas.on('mousedown', this.onMouseDown);
+        this.listenTo(this.$canvas, 'mousemove', this.trackMousePosition, this);
+        this.listenTo(this.$canvas, 'mouseleave', this.untrackMousePosition, this);
+        this.listenTo(this.$canvas, 'mousedown', this.onMouseDown, this);
 
         this.watchForMarquee();
 
-        this.$window.addEventListener('keydown', this.toggleInteractionMode);
-        this.$window.addEventListener('keyup', this.resetInteractionMode);
+        this.listenTo(this.$window, 'keydown', this.toggleInteractionMode, this);
+        this.listenTo(this.$window, 'keyup', this.resetInteractionMode, this);
 
         this.$scope.rectangles = [];
         this.$scope.tickWidth = 0;
@@ -74,12 +78,12 @@ define([
         this.$scope.series = this.config.series.models;
         this.$scope.legend = this.config.legend;
 
-        this.$scope.$on('$destroy', this.stopWatching);
-        this.$scope.$on('plot:tickWidth', this.onTickWidthChange);
-        this.$scope.$on('plot:highlight:set', this.onPlotHighlightSet);
+        this.listenTo(this.$scope, '$destroy', this.destroy, this);
+        this.listenTo(this.$scope, 'plot:tickWidth', this.onTickWidthChange, this);
+        this.listenTo(this.$scope, 'plot:highlight:set', this.onPlotHighlightSet, this);
 
-        this.config.xAxis.on('change:displayRange', this.onXAxisChange);
-        this.config.yAxis.on('change:displayRange', this.onYAxisChange);
+        this.listenTo(this.config.xAxis, 'change:displayRange', this.onXAxisChange, this);
+        this.listenTo(this.config.yAxis, 'change:displayRange', this.onYAxisChange, this);
     };
 
     MCTPlotController.prototype.onXAxisChange = function (displayBounds) {
@@ -168,6 +172,7 @@ define([
     };
 
     MCTPlotController.prototype.untrackMousePosition = function () {
+        console.log('untracking mouse position!');
         // TODO: don't untrack if the user is actively drawing.
         this.positionOverElement = undefined;
         this.positionOverPlot = undefined;
@@ -175,8 +180,8 @@ define([
     };
 
     MCTPlotController.prototype.onMouseDown = function ($event) {
-        this.$window.addEventListener('mouseup', this.onMouseUp);
-        this.$window.addEventListener('mousemove', this.trackMousePosition);
+        this.listenTo(this.$window, 'mouseup', this.onMouseUp, this);
+        this.listenTo(this.$window, 'mousemove', this.trackMousePosition, this);
         if (this.allowPan) {
             return this.startPan($event);
         }
@@ -186,8 +191,8 @@ define([
     };
 
     MCTPlotController.prototype.onMouseUp = function ($event) {
-        this.$window.removeEventListener('mouseup', this.onMouseUp);
-        this.$window.removeEventListener('mousemove', this.trackMousePosition);
+        this.stopListening(this.$window, 'mouseup', this.onMouseUp, this);
+        this.stopListening(this.$window, 'mousemove', this.trackMousePosition, this);
         if (this.pan) {
             this.endPan($event);
         }
@@ -323,13 +328,8 @@ define([
         this.$scope.$emit('user:viewport:change:end');
     };
 
-    MCTPlotController.prototype.stopWatching = function () {
-        if (this.$canvas) {
-            this.$canvas.off('mousedown', this.onMouseDown);
-            this.$canvas.off('mouseup', this.onMouseUp);
-        }
-        this.$window.removeEventListener('keydown', this.toggleInteractionMode);
-        this.$window.removeEventListener('keyup', this.resetInteractionMode);
+    MCTPlotController.prototype.destroy = function () {
+        this.stopListening();
     };
 
     return MCTPlotController;

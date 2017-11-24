@@ -24,6 +24,8 @@ define([
                 listener.unlisten = object.$watch(scopePath, listener._cb, true);
             } else if (object.$on) {
                 listener.unlisten = object.$on(event, listener._cb);
+            } else if (object.addEventListener) {
+                object.addEventListener(event, listener._cb);
             } else {
                 object.on(event, listener._cb);
             }
@@ -53,6 +55,8 @@ define([
                 .map(function (listener) {
                     if (listener.unlisten) {
                         listener.unlisten();
+                    } else if (listener.object.removeEventListener) {
+                        listener.object.removeEventListener(listener.event, listener._cb);
                     } else {
                         listener.object.off(listener.event, listener._cb);
                     }
