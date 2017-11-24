@@ -61,17 +61,22 @@ define([
                 .telemetry
                 .request(this.domainObject, options)
                 .then(function (points) {
+                    var newPoints = _(this.data)
+                        .concat(points)
+                        .sortBy(this.getXVal)
+                        .uniq(true, this.getXVal)
+                        .value();
                     this.reset();
-                    this.addPoints(points);
+                    this.addPoints(newPoints, true);
                 }.bind(this));
         },
         /**
          *
          *
          */
-        addPoints: function (points) {
+        addPoints: function (points, appendOnly) {
             points.forEach(function (point) {
-                this.add(point);
+                this.add(point, appendOnly);
             }, this);
         }
 

@@ -196,26 +196,27 @@ define([
             }
         },
         /**
-         * Append a point to the data array and notify listeners.
+         * Add a point to the data array while maintaining the sort order of
+         * the array and preventing insertion of points with a duplicate x
+         * value. Can provide an optional argument to append a point without
+         * maintaining sort order and dupe checks, which improves performance
+         * when adding an array of points that are already properly sorted.
          *
          * @private
-         * @param {Object} point
-         * @property point.x
-         * @property point.y
+         * @param {Object} point a telemetry datum.
+         * @param {Boolean} [appendOnly] default false, if true will append
+         *                  a point to the end without dupe checking.
          */
-        add: function (point) {
-            // if (this.resetOnAppend) {
-            //     this.resetOnAppend = false;
-            //     this.reset();
-            // }
-            var insertIndex = this.sortedIndex(point);
-            if (_.isEqual(this.data[insertIndex], point)) {
-                // TODO: Maybe log for this.
-                return;
-            }
-            if (_.isEqual(this.data[insertIndex + 1], point)) {
-                // TODO: Maybe log for this.
-                return;
+        add: function (point, appendOnly) {
+            var insertIndex = this.data.length;
+            if (!appendOnly) {
+                insertIndex = this.sortedIndex(point);
+                if (this.getXVal(this.data[insertIndex]) === this.getXVal(point)) {
+                    return;
+                }
+                if (this.getXVal(this.data[insertIndex - 1]) === this.getXVal(point)) {
+                    return;
+                }
             }
             this.updateStats(point);
             point._limit = this.evaluate(point);
