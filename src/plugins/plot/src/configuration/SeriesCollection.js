@@ -1,17 +1,17 @@
 define([
-    '../telemetry/TelemetryPlotSeries',
+    './PlotSeries',
     './Collection',
     './Model',
     '../lib/color'
 ], function (
-    TelemetryPlotSeries,
+    PlotSeries,
     Collection,
     Model,
     color
 ) {
 
     var SeriesCollection = Collection.extend({
-        modelClass: TelemetryPlotSeries,
+        modelClass: PlotSeries,
         initialize: function (options) {
             this.plot = options.plot;
             this.openmct = options.openmct;
@@ -51,7 +51,7 @@ define([
                 seriesConfig = JSON.parse(JSON.stringify(seriesConfig));
             }
 
-            this.add(new TelemetryPlotSeries({
+            this.add(new PlotSeries({
                 model: seriesConfig,
                 domainObject: domainObject,
                 collection: this,

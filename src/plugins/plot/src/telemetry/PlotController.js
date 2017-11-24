@@ -2,13 +2,11 @@
 
 define([
     'lodash',
-    './TelemetryPlotSeries',
     '../configuration/PlotConfigurationModel',
     '../configuration/configStore',
     '../lib/eventHelpers'
 ], function (
     _,
-    PlotSeries,
     PlotConfigurationModel,
     configStore,
     eventHelpers

@@ -48,27 +48,65 @@ define([
             this.onXKeyChange(this.get('xKey'));
             this.onYKeyChange(this.get('yKey'));
         },
-        /**
-         * Override this to implement default properties.
-         */
-        defaults: function () {
+
+        defaults: function (options) {
+            var metadata = options.openmct.telemetry.getMetadata(options.domainObject);
+            var range = metadata.valuesForHints(['range'])[0];
             return {
-            };
+                markers: true,
+                name: options.domainObject.name,
+                xKey: options.collection.plot.xAxis.get('key'),
+                yKey: range.key,
+                metadata: metadata,
+                formats: options.openmct.telemetry.getFormatMap(metadata),
+                markers: true,
+                markerSize: 2.0,
+                alarmMarkers: true
+            }
         },
 
-        initialize: function () {
+        onDestroy: function (model) {
+            if (this.unsubscribe) {
+                this.unsubscribe();
+            }
+        },
 
+        initialize: function (options) {
+            this.openmct = options.openmct;
+            this.domainObject = options.domainObject;
+            this.limitEvaluator = this.openmct.telemetry.limitEvaluator(options.domainObject);
+            this.on('destroy', this.onDestroy, this);
         },
         /**
-         * Override this to implement data fetching.  Should return a promise
-         * for an array of points.
+         * Fetch historical data and establish a realtime subscription.  Returns
+         * a promise that is resolved when all connections have been successfully
+         * established.
          *
          * @returns {Promise}
          */
         fetch: function (options) {
-            return Promise.resolve([]);
-        },
+            options = _.extend({}, {size: 1000, strategy: 'minmax'}, options || {});
+            if (!this.unsubscribe) {
+                this.unsubscribe = this.openmct
+                    .telemetry
+                    .subscribe(
+                        this.domainObject,
+                        this.add.bind(this)
+                    );
+            }
 
+            return this.openmct
+                .telemetry
+                .request(this.domainObject, options)
+                .then(function (points) {
+                    var newPoints = _(this.data)
+                        .concat(points)
+                        .sortBy(this.getXVal)
+                        .uniq(true, this.getXVal)
+                        .value();
+                    this.reset(newPoints);
+                }.bind(this));
+        },
         onXKeyChange: function (xKey) {
             var format = this.get('formats')[xKey];
             this.getXVal = format.parse.bind(format);
@@ -104,6 +142,14 @@ define([
         },
 
         /**
+         * Clear stats and recalculate from existing data.
+         */
+        resetStats: function () {
+            this.unset('stats');
+            this.data.forEach(this.updateStats, this);
+        },
+
+        /**
          * Reset plot series.
          */
         reset: function (newData) {
@@ -111,12 +157,10 @@ define([
             this.resetStats();
             this.emit('reset');
             if (newData) {
-                this.addPoints(newData, true);
+                newData.forEach(function (point) {
+                    this.add(point, true);
+                }, this);
             }
-        },
-        resetStats: function () {
-            this.unset('stats');
-            this.data.forEach(this.updateStats, this);
         },
         /**
          * Return the point closest to a given point, based on the sort
