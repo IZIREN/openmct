@@ -83,12 +83,19 @@ define([
         this.domainObject = domainObject;
     };
 
+    PlotOptionsController.prototype.destroy = function () {
+        configStore.untrack(this.configId);
+        this.stopListening();
+        this.unlisten();
+    };
+
     PlotOptionsController.prototype.setUpScope = function () {
         var config = configStore.get(this.configId);
         if (!config) {
             this.$timeout(this.setUpScope.bind(this));
             return;
         }
+        configStore.track(this.configId);
 
         this.config = this.$scope.config = config;
         this.$scope.setColor = this.setColor.bind(this);
@@ -98,7 +105,7 @@ define([
         this.domainObject = this.config.get('domainObject');
         this.unlisten = this.openmct.objects.observe(this.domainObject, '*', this.updateDomainObject.bind(this));
 
-        this.listenTo(this.$scope, '$destroy', this.unlisten);
+        this.listenTo(this.$scope, '$destroy', this.destroy, this);
         this.listenTo(config.series, 'add', this.addSeries, this);
         this.listenTo(config.series, 'remove', this.removeSeries, this);
         config.series.forEach(this.addSeries, this);

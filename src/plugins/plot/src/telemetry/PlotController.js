@@ -89,11 +89,13 @@ define([
         if (!config) {
             var newDomainObject = domainObject.useCapability('adapter');
             config = new PlotConfigurationModel({
+                id: configId,
                 domainObject: newDomainObject,
                 openmct: this.openmct
             });
             configStore.add(configId, config);
         }
+        configStore.track(configId);
         return config;
     };
 
@@ -102,8 +104,7 @@ define([
     };
 
     PlotController.prototype.destroy = function () {
-        configStore.remove(this.configId);
-        this.config.destroy();
+        configStore.untrack(this.config.id);
         this.stopListening();
     };
 
@@ -158,6 +159,12 @@ define([
         this.$scope.pending -= 1;
     };
 
+    /**
+     * Getter/setter for "synchronized" value.  If not synchronized and
+     * time conductor is in clock mode, will mark objects as unsynced so that
+     * displays can update accordingly.
+     * @private
+     */
     PlotController.prototype.synchronized = function (value) {
         if (typeof value !== 'undefined') {
             this._synchronized = value;
@@ -173,6 +180,7 @@ define([
     /**
      * Handle end of user viewport change: load more data for current display
      * bounds, and mark view as synchronized if bounds match configured bounds.
+     * @private
      */
     PlotController.prototype.onUserViewportChangeEnd = function () {
         var xDisplayRange = this.config.xAxis.get('displayRange');
@@ -185,7 +193,7 @@ define([
     };
 
     /**
-     *
+     * Export view as JPG.
      */
     PlotController.prototype.exportJPG = function () {
         this.hideExportButtons = true;
@@ -195,6 +203,9 @@ define([
             }.bind(this));
     };
 
+    /**
+     * Export view as PNG.
+     */
     PlotController.prototype.exportPNG = function () {
         this.hideExportButtons = true;
         this.exportImageService.exportPNG(this.$element[0], 'plot.png')
