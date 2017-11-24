@@ -48,6 +48,7 @@ define([
                     );
                 }
                 seriesConfig = this.plot.get('domainObject').configuration.series[index];
+                // Clone to prevent accidental mutation by ref.
                 seriesConfig = JSON.parse(JSON.stringify(seriesConfig));
             }
 
