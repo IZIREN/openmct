@@ -19,6 +19,12 @@ define([
 ) {
     'use strict';
 
+    /**
+     * PlotConfiguration model stores the configuration of a plot and some
+     * limited state.  The indiidual parts of the plot configuration model
+     * handle setting defaults and updating in response to various changes.
+     *
+     */
     var PlotConfigurationModel = Model.extend({
 
         initialize: function (options) {

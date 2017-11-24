@@ -1,9 +1,11 @@
 /*global define, setTimeout*/
 
 define([
-    'lodash'
+    'lodash',
+    '../lib/eventHelpers'
 ], function (
-    _
+    _,
+    eventHelpers
 ) {
     'use strict';
 
@@ -102,16 +104,15 @@ define([
 
         this.tickCount = 4;
         this.tickUpdate = false;
-        this.updateTicks = this.updateTicks.bind(this);
-        this.axis.on('change:displayRange', this.updateTicks);
-        this.axis.on('change:format', this.updateTicks);
+        this.listenTo(this.axis, 'change:displayRange', this.updateTicks, this);
+        this.listenTo(this.axis, 'change:format', this.updateTicks, this);
+        this.listenTo(this.$scope, '$destroy', this.stopListening, this);
         this.updateTicks();
-        this.$scope.$on('$destroy', function () {
-            this.axis.off('change:displayRange', this.updateTicks);
-        }.bind(this));
     }
 
     MCTTicksController.$inject = ['$scope', '$element'];
+
+    eventHelpers.extend(MCTTicksController.prototype);
 
     /**
      * Determine whether ticks should be regenerated for a given range.

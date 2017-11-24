@@ -33,23 +33,6 @@ define([
         this.$scope.plotHistory = this.plotHistory = [];
         this.listenTo(this.$scope, 'plot:clearHistory', this.clear, this);
 
-        // Bind handlers so they are properly removed.
-        // [
-        //     'toggleInteractionMode',
-        //     'resetInteractionMode',
-        //     'onMouseDown',
-        //     'onMouseUp',
-        //     'trackMousePosition',
-        //     'untrackMousePosition',
-        //     'stopWatching',
-        //     'onPlotHighlightSet',
-        //     'onTickWidthChange',
-        //     'onXAxisChange',
-        //     'onYAxisChange'
-        // ].forEach(function (handler) {
-        //     this[handler] = this[handler].bind(this);
-        // }, this);
-
         this.initialize();
         window.control = this;
     }
@@ -172,11 +155,9 @@ define([
     };
 
     MCTPlotController.prototype.untrackMousePosition = function () {
-        console.log('untracking mouse position!');
-        // TODO: don't untrack if the user is actively drawing.
         this.positionOverElement = undefined;
         this.positionOverPlot = undefined;
-        this.highlightValues();
+        // this.highlightValues();
     };
 
     MCTPlotController.prototype.onMouseDown = function ($event) {

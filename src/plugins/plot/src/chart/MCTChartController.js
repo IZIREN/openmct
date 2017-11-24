@@ -41,10 +41,7 @@ function (
         this.alarmSets = [];
         this.offset = {};
         this.config = $scope.config;
-        this.$scope.$on(
-            '$destroy',
-            _.bind(this.onDestroy, this)
-        );
+        this.listenTo(this.$scope, '$destoy', this.destroy, this);
         this.draw = this.draw.bind(this);
         this.scheduleDraw = this.scheduleDraw.bind(this);
         this.seriesElements = new WeakMap();
@@ -131,7 +128,7 @@ function (
         this.scheduleDraw();
     };
 
-    MCTChartController.prototype.onDestroy = function () {
+    MCTChartController.prototype.destroy = function () {
         this.isDestroyed = true;
         this.stopListening();
         _.invoke(this.lines, 'destroy');
