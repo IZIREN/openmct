@@ -106,10 +106,13 @@ define([
         /**
          * Reset plot series.
          */
-        reset: function (data) {
+        reset: function (newData) {
             this.data = [];
             this.resetStats();
             this.emit('reset');
+            if (newData) {
+                this.addPoints(newData, true);
+            }
         },
         resetStats: function () {
             this.unset('stats');
@@ -259,8 +262,7 @@ define([
                     this.resetStats();
                 } else {
                     var newData = this.data.slice(startIndex, endIndex);
-                    this.reset()
-                    this.addPoints(newData);
+                    this.reset(newData);
                 }
             }
 

@@ -66,8 +66,7 @@ define([
                         .sortBy(this.getXVal)
                         .uniq(true, this.getXVal)
                         .value();
-                    this.reset();
-                    this.addPoints(newPoints, true);
+                    this.reset(newPoints);
                 }.bind(this));
         },
         /**
