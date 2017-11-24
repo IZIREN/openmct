@@ -46,20 +46,16 @@ define([
         this.listenTo($scope, 'user:viewport:change:end', this.onUserViewportChangeEnd, this);
         this.listenTo($scope, '$destroy', this.destroy, this);
 
-        this.initialize($scope.domainObject);
+        this.config = this.getConfig(this.$scope.domainObject);
+        this.listenTo(this.config.series, 'add', this.addSeries, this);
+        this.listenTo(this.config.series, 'remove', this.removeSeries, this);
+        this.config.series.forEach(this.addSeries, this);
+
         this.followTimeConductor();
         window.plot = this;
     }
 
     eventHelpers.extend(PlotController.prototype);
-
-    PlotController.prototype.initialize = function () {
-        this.getConfig(this.$scope.domainObject);
-        this.listenTo(this.config.series, 'add', this.addSeries, this);
-        this.listenTo(this.config.series, 'remove', this.removeSeries, this);
-
-        this.config.series.forEach(this.addSeries, this);
-    };
 
     PlotController.prototype.followTimeConductor = function () {
         this.listenTo(this.openmct.time, 'bounds', this.updateDisplayBounds, this);
@@ -73,8 +69,6 @@ define([
             size: this.$element[0].offsetWidth,
             domain: this.config.xAxis.get('key')
         };
-
-        _.extend(options, this.openmct.time.bounds());
 
         series.load(options)
             .then(this.stopLoading.bind(this));
@@ -92,18 +86,17 @@ define([
     };
 
     PlotController.prototype.getConfig = function (domainObject) {
-        this.configId = domainObject.getId();
-        this.config = configStore.get(this.configId);
-        if (!this.config) {
+        var configId = domainObject.getId();
+        var config = configStore.get(configId);
+        if (!config) {
             var newDomainObject = domainObject.useCapability('adapter');
-            this.config = new PlotConfigurationModel({
+            config = new PlotConfigurationModel({
                 domainObject: newDomainObject,
                 openmct: this.openmct
             });
-            configStore.add(this.configId, this.config);
+            configStore.add(configId, config);
         }
-
-        return this.config;
+        return config;
     };
 
     PlotController.prototype.onTimeSystemChange = function (timeSystem) {
@@ -179,6 +172,10 @@ define([
         return this._synchronized;
     };
 
+    /**
+     * Handle end of user viewport change: load more data for current display
+     * bounds, and mark view as synchronized if bounds match configured bounds.
+     */
     PlotController.prototype.onUserViewportChangeEnd = function () {
         var xDisplayRange = this.config.xAxis.get('displayRange');
         var xRange = this.config.xAxis.get('range');
@@ -189,6 +186,9 @@ define([
                           xRange.max === xDisplayRange.max);
     };
 
+    /**
+     *
+     */
     PlotController.prototype.exportJPG = function () {
         this.hideExportButtons = true;
         this.exportImageService.exportJPG(this.$element[0], 'plot.jpg')
