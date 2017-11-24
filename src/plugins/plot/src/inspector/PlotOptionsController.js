@@ -107,7 +107,7 @@ define([
 
         this.listenTo(this.$scope, '$destroy', this.destroy, this);
         this.listenTo(config.series, 'add', this.addSeries, this);
-        this.listenTo(config.series, 'remove', this.removeSeries, this);
+        this.listenTo(config.series, 'remove', this.resetAllSeries, this);
         config.series.forEach(this.addSeries, this);
 
         this.linkFields(config.yAxis, 'label', 'form.yAxis.label', undefined, undefined, 'configuration.yAxis.label');
@@ -199,10 +199,16 @@ define([
         this.linkFields(series, 'alarmMarkers', path + 'alarmMarkers', Boolean, undefined, configPath + 'alarmMarkers');
     };
 
-    PlotOptionsController.prototype.removeSeries = function (series, index) {
+    PlotOptionsController.prototype.resetAllSeries = function (series, index) {
+        this.removeSeries(series);
+        this.config.series.forEach(this.removeSeries, this);
+        this.$scope.form.series = [];
+        this.config.series.forEach(this.addSeries, this);
+    }
+
+    PlotOptionsController.prototype.removeSeries = function (series) {
         this.stopListening(series);
         series.stopListening(this.$scope);
-        this.$scope.form.series.splice(index, 1);
     };
 
     PlotOptionsController.prototype.linkFields = function (

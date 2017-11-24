@@ -104,6 +104,7 @@ define([
         this.forEach(function (m) {
             m.destroy();
         });
+        this.stopListening();
     };
 
     return Collection;
