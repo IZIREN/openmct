@@ -224,13 +224,23 @@ define([
             this.emit('add', point, insertIndex, this);
         },
         /**
-         * Remove a point from the data array.
+         * Remove a point from the data array and notify listeners.
          */
         remove: function (point) {
             var index = this.data.indexOf(point);
             this.data.splice(index, 1);
             this.emit('remove', point, index, this);
         },
+        /**
+         * Purges records outside a given x range.  Changes removal method based
+         * on number of records to remove: for large purge, reset data and
+         * rebuild array.  for small purge, removes points and emits updates.
+         *
+         * @private
+         * @param {Object} range
+         * @param {number} range.min minimum x value to keep
+         * @param {number} range.max maximum x value to keep.
+         */
         purgeRecordsOutsideRange: function (range) {
             var xKey = this.get('xKey');
             var format = this.get('formats')[xKey];
@@ -241,9 +251,19 @@ define([
 
             var startIndex = this.sortedIndex(startPoint);
             var endIndex = this.sortedIndex(endPoint) + 1;
-            this.data.slice(0, startIndex).forEach(this.remove, this);
-            this.data.slice(endIndex, this.data.length).forEach(this.remove, this);
-            this.resetStats();
+            var pointsToRemove = startIndex + (this.data.length - endIndex + 1);
+            if (pointsToRemove > 0) {
+                if (pointsToRemove < 1000) {
+                    this.data.slice(0, startIndex).forEach(this.remove, this);
+                    this.data.slice(endIndex, this.data.length).forEach(this.remove, this);
+                    this.resetStats();
+                } else {
+                    var newData = this.data.slice(startIndex, endIndex);
+                    this.reset()
+                    this.addPoints(newData);
+                }
+            }
+
         }
     });
 

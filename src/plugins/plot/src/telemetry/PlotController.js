@@ -132,7 +132,7 @@ define([
     };
 
     /**
-     * Update display bounds when receiving events from time conductor.
+     * Track latest display bounds.  Forces update when not receiving ticks.
      */
     PlotController.prototype.updateDisplayBounds = function (bounds, isTick) {
         var newRange = {
@@ -144,7 +144,18 @@ define([
             this.$scope.$broadcast('plot:clearHistory');
             this.loadMoreData(newRange, true);
         } else {
-            // TODO: drop any data that is more than 2x (max-min) before min.
+            // Drop any data that is more than 1x (max-min) before min.
+            // Limit these purges to once a second.
+            if (!this.nextPurge || this.nextPurge < Date.now()) {
+                var keepRange = {
+                    min: newRange.min - (newRange.max - newRange.min),
+                    max: newRange.max
+                };
+                this.config.series.forEach(function (series) {
+                    series.purgeRecordsOutsideRange(keepRange);
+                });
+                this.nextPurge = Date.now() + 1000;
+            }
         }
     };
 
