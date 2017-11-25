@@ -4,6 +4,9 @@ define([
     Model
 ) {
 
+    /**
+     * TODO: doc strings.
+     */
     var LegendModel = Model.extend({
         listenToSeriesCollection: function (seriesCollection) {
             this.seriesCollection = seriesCollection;

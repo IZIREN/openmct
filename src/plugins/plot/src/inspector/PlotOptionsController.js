@@ -170,7 +170,7 @@ define([
             // So here's to hoping this helps debugging.
             throw new Error('Plot options does not support insert at index.');
         }
-        var metadata = series.get('metadata');
+        var metadata = series.metadata;
         this.$scope.form.series[index] = {
             yAxisOptions: metadata.valuesForHints(['range']).map(function (o) {
                 return {

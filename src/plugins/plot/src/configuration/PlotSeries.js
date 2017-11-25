@@ -14,33 +14,53 @@ define([
     'use strict';
 
     /**
-     * Plot series handles loading data from a domain object into a series
-     * object.  Listeners can be attached to a plot series and will be called
-     * every time a data point is added.
-
-     * @prop {Array} data an array of data points.
-     * @prop {String} name the display name of the object.
-     * @prop {Color} color the color of the line.
-     * @prop {String} interpolate interpolate method, either `undefined` (no
-     *     interpolate), `linear`, or `stepAfter`.
-     * @prop {Boolean} markers if true, display plot markers.
-     * @prop {Function} xFormat a function that formats x values.
-     * @prop {Function} yFormat a function that formats y values.
+     * Plot series handle interpreting telemetry metadata for a single telemetry
+     * object, querying for that data, and formatting it for display purposes.
      *
-     * @constructor
-     * @param {Object} options
-     * @param {String} options.interpolate an interpolate option, either
-     *     `undefined` (no interpolate), `linear`, or `stepAfter`.
-     * @param {Boolean} options.markers whether or not to show markers on line.
-     * @param {Color} options.color The color to use when drawing the line.
-     * @param {String} options.name The name of the object
-     * @param {Function} options.xFormat a function that formats x values.
-     * @param {Function} options.yFormat a function that formats y values.
+     * Plot series emit both collection events and model events:
+     * `change` when any property changes
+     * `change:<prop_name>` when a specific property changes.
+     * `destroy`: when series is destroyed
+     * `add`: whenever a data point is added to a series
+     * `remove`: whenever a data point is removed from a series.
+     * `reset`: whenever the collection is emptied.
      *
+     * Plot series have the following Model properties:
+     *
+     * `name`: name of series.
+     * `identifier`: the Open MCT identifier for the telemetry source for this
+     *               series.
+     * `xKey`: the telemetry value key for x values fetched from this series.
+     * `yKey`: the telemetry value key for y values fetched from this series.
+     * `interpolate`: interpolate method, either `undefined` (no interpolation),
+     *                `linear` (points are connected via straight lines), or
+     *                `stepAfter` (points are connected by steps).
+     * `markers`: boolean, whether or not this series should render with markers.
+     * `markerSize`: number, size in pixels of markers for this series.
+     * `alarmMarkers`: whether or not to display alarm markers for this series.
+     * `stats`: An object that tracks the min and max y values observed in this
+     *          series.  This property is checked and updated whenever data is
+     *          added.
+     *
+     * Plot series have the following instance properties:
+     *
+     * `metadata`: the Open MCT Telemetry Metadata Manager for the associated
+     *             telemetry point.
+     * `formats`: the Open MCT format map for this telemetry point.
      */
     var PlotSeries = Model.extend({
-        constructor: function (model) {
+        constructor: function (options) {
+            this.metadata = options
+                .openmct
+                .telemetry
+                .getMetadata(options.domainObject);
+            this.formats = options
+                .openmct
+                .telemetry
+                .getFormatMap(this.metadata);
+
             this.data = [];
+
             this.listenTo(this, 'change:xKey', this.onXKeyChange, this);
             this.listenTo(this, 'change:yKey', this.onYKeyChange, this);
 
@@ -49,22 +69,24 @@ define([
             this.onYKeyChange(this.get('yKey'));
         },
 
+        /**
+         * Set defaults for telemetry series.
+         */
         defaults: function (options) {
-            var metadata = options.openmct.telemetry.getMetadata(options.domainObject);
-            var range = metadata.valuesForHints(['range'])[0];
+            var range = this.metadata.valuesForHints(['range'])[0];
             return {
-                markers: true,
                 name: options.domainObject.name,
                 xKey: options.collection.plot.xAxis.get('key'),
                 yKey: range.key,
-                metadata: metadata,
-                formats: options.openmct.telemetry.getFormatMap(metadata),
                 markers: true,
                 markerSize: 2.0,
                 alarmMarkers: true
             }
         },
 
+        /**
+         * Remove real-time subscription when destroyed.
+         */
         onDestroy: function (model) {
             if (this.unsubscribe) {
                 this.unsubscribe();
@@ -107,15 +129,22 @@ define([
                     this.reset(newPoints);
                 }.bind(this));
         },
+        /**
+         * Update x formatter on x change.
+         */
         onXKeyChange: function (xKey) {
-            var format = this.get('formats')[xKey];
+            var format = this.formats[xKey];
             this.getXVal = format.parse.bind(format);
         },
+        /**
+         * Update y formatter on change, default to stepAfter interpolation if
+         * y range is an enumeration.
+         */
         onYKeyChange: function (newKey, oldKey) {
             if (newKey === oldKey) {
                 return;
             }
-            var valueMetadata = this.get('metadata').value(newKey);
+            var valueMetadata = this.metadata.value(newKey);
             if (valueMetadata.format === 'enum') {
                 this.set('interpolate', 'stepAfter');
             } else {
@@ -124,21 +153,23 @@ define([
             this.evaluate = function (datum) {
                 return this.limitEvaluator.evaluate(datum, valueMetadata);
             }.bind(this);
-            var format = this.get('formats')[newKey];
+            var format = this.formats[newKey];
             this.getYVal = format.parse.bind(format);
         },
 
         /**
          * Retrieve and format a value from a given point.
+         * TODO: remove this to simplify interface.
          */
         format: function (point, key) {
-            return this.get('formats')[key].format(point);
+            return this.formats[key].format(point);
         },
         /**
          * Retrieve a numeric value from a given point.
+        * TODO: remove this to simplify interface.
          */
         value: function (point, key) {
-            return this.get('formats')[key].parse(point);
+            return this.formats[key].parse(point);
         },
 
         /**
@@ -272,6 +303,7 @@ define([
         },
         /**
          * Remove a point from the data array and notify listeners.
+         * @private
          */
         remove: function (point) {
             var index = this.data.indexOf(point);
@@ -283,14 +315,14 @@ define([
          * on number of records to remove: for large purge, reset data and
          * rebuild array.  for small purge, removes points and emits updates.
          *
-         * @private
+         * @public
          * @param {Object} range
          * @param {number} range.min minimum x value to keep
          * @param {number} range.max maximum x value to keep.
          */
         purgeRecordsOutsideRange: function (range) {
             var xKey = this.get('xKey');
-            var format = this.get('formats')[xKey];
+            var format = this.formats[xKey];
             var startPoint = {};
             var endPoint = {};
             startPoint[xKey] = format.format(range.min);

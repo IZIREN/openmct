@@ -6,6 +6,27 @@ define([
     _
 ) {
 
+   /**
+    * YAxis model
+     *
+    * TODO: docstrings.
+    *
+    * has the following Model properties:
+    *
+    * `autoscale`: boolean, whether or not to autoscale.
+    * `autoscalePadding`: float, percent of padding to display in plots.
+    * `displayRange`: the current display range for the x Axis.
+    * `format`: the formatter for the axis.
+    * `frozen`: boolean, if true, displayRange will not be updated automatically.
+    *           Used to temporarily disable automatic updates during user interaction.
+    * `label`: label to display on axis.
+    * `stats`: Min and Max Values of data, automatically updated by observing
+    *          plot series.
+    * `values`: for enumerated types, an array of possible display values.
+    * `range`: the user-configured range to use for display, when autoscale is
+    *         disabled.
+    *
+    */
     var YAxisModel = Model.extend({
         initialize: function (options) {
             this.plot = options.plot;
@@ -126,8 +147,8 @@ define([
             }
 
             var yKey = sampleSeries.get('yKey')
-            var yMetadata = sampleSeries.get('metadata').value(yKey);
-            var yFormat = sampleSeries.get('formats')[yKey];
+            var yMetadata = sampleSeries.metadata.value(yKey);
+            var yFormat = sampleSeries.formats[yKey];
             this.set('format', yFormat.format.bind(yFormat));
             this.set('values', yMetadata.values);
 
@@ -135,7 +156,7 @@ define([
             var label = _.get(plotModel, 'configuration.xAxis.label');
             if (!label) {
                 var labelUnits = series.map(function (s) {
-                    return s.get('metadata').value(s.get('yKey')).units;
+                    return s.metadata.value(s.get('yKey')).units;
                 }).reduce(function (a, b) {
                     if (a === undefined) {
                         return b;
@@ -150,7 +171,7 @@ define([
                     return;
                 }
                 var labelName = series.map(function (s) {
-                    return s.get('metadata').value(s.get('yKey')).name;
+                    return s.metadata.value(s.get('yKey')).name;
                 }).reduce(function (a, b) {
                     if (a === undefined) {
                         return b;

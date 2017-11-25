@@ -27,6 +27,10 @@ define([
      */
     var PlotConfigurationModel = Model.extend({
 
+        /**
+         * Initializes all sub models and then passes references to submodels
+         * to those that need it.
+         */
         initialize: function (options) {
             this.openmct = options.openmct;
 
@@ -51,16 +55,25 @@ define([
                 openmct: options.openmct
             });
 
-            this.removeMutationListener = this.openmct.objects.observe(this.get('domainObject'), '*', function (domainObject) {
-                this.set('domainObject', domainObject);
-            }.bind(this));
-
+            this.removeMutationListener = this.openmct.objects.observe(
+                this.get('domainObject'),
+                '*',
+                this.updateDomainObject.bind(this)
+            );
             this.yAxis.listenToSeriesCollection(this.series);
             this.legend.listenToSeriesCollection(this.series);
 
             this.listenTo(this, 'destroy', this.onDestroy, this);
-
         },
+        /**
+         * Update the domain object with the given value.
+         */
+        updateDomainObject: function (domainObject) {
+            this.set('domainObject', domainObject);
+        },
+        /**
+         * Clean up all objects and remove all listeners.
+         */
         onDestroy: function () {
             this.xAxis.destroy();
             this.yAxis.destroy();
@@ -68,6 +81,10 @@ define([
             this.legend.destroy();
             this.removeMutationListener();
         },
+        /**
+         * Return defaults, which are extracted from the passed in domain
+         * object.
+         */
         defaults: function (options) {
             return {
                 series: [],

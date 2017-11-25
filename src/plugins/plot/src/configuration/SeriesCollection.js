@@ -63,6 +63,8 @@ define([
             // TODO: properly locate in self (and parent configuration)
             // Instead of binding via index, which is not guaranteed because
             // edits could occur when plotcontroller is not instantiated.
+            // This bug also extends to the plotOptions form which currently
+            // relies on indexes that match.
             var plotObject = this.plot.get('domainObject');
             if (plotObject.type === 'telemetry.plot.overlay') {
                 var index = _.findIndex(plotObject.configuration.series, function (s) {

@@ -4,6 +4,9 @@ define([
     Model
 ) {
 
+    /**
+     * TODO: doc strings.
+     */
     var XAxisModel = Model.extend({
         initialize: function (options) {
             this.plot = options.plot;
@@ -27,8 +30,8 @@ define([
         changeKey: function (newKey) {
             var series = this.plot.series.first();
             if (series) {
-                var xMetadata = series.get('metadata').value(newKey);
-                var xFormat = series.get('formats')[newKey];
+                var xMetadata = series.metadata.value(newKey);
+                var xFormat = series.formats[newKey];
                 this.set('label', xMetadata.name);
                 this.set('format', xFormat.format.bind(xFormat));
             } else {
